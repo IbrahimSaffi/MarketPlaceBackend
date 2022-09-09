@@ -2,7 +2,7 @@ require("dotenv").config()
 const express = require("express")
 const morgan = require("morgan")
 const multer = require("multer")
-
+const jwt = require("jsonwebtoken")
 const { default: mongoose } = require('mongoose');
 const authRouter = require("./routes/auth")
 const categoryRouter = require("./routes/category")
@@ -24,10 +24,10 @@ app.use(morgan("dev"))
 app.use(express.urlencoded({extended:false}))
 
 app.use('/auth',authRouter)
-// app.use(authorization,(req,res,next))
+app.use(authorization)
 app.use('/category',authorization,categoryRouter)
 app.use('/ad',authorization,adRouter)
-async function authorization(){
+async function authorization(req,res){
     try{
         console.log("here")
         let payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
