@@ -5,6 +5,9 @@ const router = express.Router();
 const ObjectId = require('mongodb').ObjectId
 const AdModel = require("../schemes/adScheme");
 const UserModel = require('../schemes/userScheme');
+const adModel = require("../schemes/adScheme");
+const categoryModel = require("../schemes/categoryScheme");
+const bycrypt = require("bcryptjs")
 
 
 const storage = multer.diskStorage({
@@ -42,9 +45,8 @@ router.get('/', async (req, res) => {
 })
 //Add ad
 router.post('/add',upload.single("image"), async (req, res) => {
-    const { title,description ,price,seller,category,interestedBuyers,buyer } = req.body
+    const { title,description ,price,seller,category } = req.body
     if (!title||!description ||!price||!seller||!category) {
-        console.log('here')
         return res.status(400).send("Not all required fields are provided")
     }
     imageUrl ="No Image"
@@ -57,16 +59,37 @@ router.post('/add',upload.single("image"), async (req, res) => {
     if (adExist !== null) {
         return res.status(400).send("This Ad already exists")
     }
-    const user = await UserModel.find({name:seller})
+    let user;
+    let categoryObj;
+    try{
+         user = await UserModel.findOne({_id:ObjectId(seller)})
+    try{
+          categoryObj = await categoryModel.findOne({_id:ObjectId(category)})
+    }
+    catch(err){
+        return res.status(400).send("Such category do not exist")
+    }
+    }
+    catch(err){
+        return res.status(400).send("Make sure you are logged in and recheck your id")
+    }
+    if(user===null){
+        return res.status(400).send("Make sure you are logged in and recheck your id")
+    }
+    if(category===null){
+        return res.status(400).send("Such category do not exist")
+    }
     let newAd = new AdModel({
         title:title,
         description :description ,
         price:price,
-        seller:seller,
-        category:category,
+        seller:user,
+        category:categoryObj,
         img:imageUrl
-
     })
+     
+    await UserModel.findOneAndUpdate({_id:seller},{ $push: { ads: newAd } })
+
     res.status(200).send(`Ad created with id ${newAd.id}`)
     console.log(newAd)
     newAd.save()
@@ -76,44 +99,46 @@ router.post('/:id/buy', async (req, res) => {
     const id = req.params.id;
     let filter = {"_id":ObjectId(id)}
     console.log(id)
-    const { buyer } = req.body
-    if(!buyer){
+    const { email } = req.body
+    if(!email){
         return res.status(400).send("Provide Buyer Details")
     }
-    const ad = await AdModel.find(filter)
+    const ad = await AdModel.findOne(filter)
     if(ad===null){
         return res.status(400).send("No such ad exist")
     }
-    const user = await UserModel.find({name:buyer})
+    const user = await UserModel.findOne({email:email})
     if(user ===null){
         return res.status(400).send("Make sure you are logged in")
     }
-    await AdModel.updateOne({ $push: { buyers: user } })
-    // if(ad.interestedBuyers!==undefined){
-    //     buyers = ad.interestedBuyers.map(ele=>ele.slice())
-    //     buyers.push(user)     
-    // }
-    // else{
-    //     buyers = ad.interestedBuyers.map(ele=>ele.slice())
-    //     buyers.push(user)
-    // }
-    await AdModel.findOneAndUpdate(filter,{interestedBuyers:buyers})
+    console.log(ad,user)
+    await AdModel.findOneAndUpdate(filter,{ $push: { interestedBuyers: user } })
     return res.status(200).send("Your request has been sent") 
 })
 //Bought Ad
 router.post('/:id/close/:buyerId', async (req, res) => {
     const id = req.params.id;
     const buyerId = req.params.buyerId
-    let filter = {"_id":id}
-    console.log(id)
-
-    const ad = await AdModel.find(filter)
+    const {seller} = req.body
+    const userExist = await UserModel.findById(seller)
+    if (userExist === null) {
+        return res.status(400).send("Make sure you are logged in")
+    }
+    let filter = {"_id":ObjectId(id)}
+    const ad = await AdModel.findOne(filter).populate("seller")
+    if(ad.seller.email!==userExist.email){
+        return res.status(400).send("You are not creater of this ad")
+    }
     if(ad===null){
         return res.status(400).send("No such ad exist")
     }
-    const user = await UserModel.find({_id:id})
+    if(!ad.interestedBuyers.includes(buyerId)){
+        res.status(200).send("This costumer is not interested in product")
+    }
+    const user = await UserModel.findOne({_id:ObjectId(buyerId)})
+    console.log(user)
     await AdModel.findOneAndUpdate(filter,{buyer:user})
-    return res.status(200).send("Your order has been placed") 
+    return res.status(200).send(`Product has been sold to ${user.name}`) 
 })
 //Display Ad
 router.get('/:id', async (req, res) => {
@@ -133,7 +158,7 @@ router.delete('/:id', async (req, res) => {
     if(!name){
         return res.status(400).send("Provide your Details")
     }
-    const ad = await AdModel.find(filter)
+    const ad = await AdModel.findOne(filter)
     if(ad===null){
         return res.status(400).send("No such ad exist")
     }

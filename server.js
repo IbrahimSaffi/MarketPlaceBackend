@@ -27,15 +27,24 @@ app.use('/auth',authRouter)
 app.use(authorization)
 app.use('/category',authorization,categoryRouter)
 app.use('/ad',authorization,adRouter)
-async function authorization(req,res){
+async function authorization(req,res,next){
+    const authHeader = req.headers['authorization']
+    if (authHeader === undefined) {
+        return res.status(401).json({ error: "No Token was Provided" })
+    }
+    const token = authHeader.split(" ")[1]
+    if (token === undefined) {
+       return res.status(401).json({ error: "Proper token was not Provided" })
+    }
     try{
-        console.log("here")
+        
         let payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        const ads = await AdModel.find({})
-        if(ads===null){
-            return res.status(400).send("No Ads exist ")
-        }
-        res.status(200).send(ads)
+        next()
+        // const ads = await AdModel.find({})
+        // if(ads===null){
+        //     return res.status(400).send("No Ads exist ")
+        // }
+        // res.status(200).send(ads)
     }
     catch(e){
         return res.status(401).send("Token is not Valid"+e.message)

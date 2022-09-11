@@ -34,8 +34,8 @@ router.post('/login', async (req, res) => {
         return res.status(400).send("Email or password not recieved")
     }
     console.log(email, password)
-    let salt = await bycrypt.genSalt(10)
-    let hash = await bycrypt.hash(password, salt)
+    // let salt = await bycrypt.genSalt(10)
+    // let hash = await bycrypt.hash(password, salt)
     const userExist = await UserModel.findOne({ email: email })
     if (userExist === null) {
         console.log("here1")
@@ -44,7 +44,6 @@ router.post('/login', async (req, res) => {
     let payload = { email: userExist.email, password: userExist.password }
     const result = await bycrypt.compare(password, userExist.password)
     if (userExist !== null && !result) {
-        console.log(password, userExist.password)
         return res.status(400).send("Password is incorrect")
     }
     console.log("user logged in")
@@ -52,28 +51,24 @@ router.post('/login', async (req, res) => {
     let refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "3d" })
     console.log("token", accessToken, "refreshToken", refreshToken)
     refreshTokens.push(refreshToken)
-    res.status(200).send({accessToken:accessToken,refreshToken:refreshToken})
+    res.status(200).send({accessToken:accessToken,refreshToken:refreshToken,userExist})
 })
 
 router.get('/token', async (req, res) => {
     const refreshToken = req.body.refreshToken
-    console.log(req.body)
     if (!refreshToken) {
         return res.status(400).send("Please provide refresh token")
     }
-    // if (!refreshTokens.includes(refreshToken)) {
-    //     return res.status(401).send("Please provide valid refresh token")
-    // }
+    if (!refreshTokens.includes(refreshToken)) {
+        return res.status(401).send("Please provide valid refresh token")
+    }
     try{
         let payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET)
-        
-        //check payload
-        //payload has already expires property
         let newAccessToken = jwt.sign({id:payload.id}, process.env.ACCESS_TOKEN_SECRET,{expiresIn:"1h"})
         res.status(200).send({"accessToken": newAccessToken})
     }
     catch(e){
-        console.log(e.message)
+        res.status(200).send("Refresh token expired")
     }
 })
 module.exports = router

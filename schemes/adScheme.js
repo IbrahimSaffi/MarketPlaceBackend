@@ -13,17 +13,12 @@ const adScheme = new mongoose.Schema({
       required: true
    },
    seller: {
-      type:String,
-      required:true
-      // type: mongoose.Schema.Types.ObjectId,
-      // ref: "User"
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
    },
    category: {
-      type:String,
-      required: true
-
-      // type: mongoose.Schema.Types.ObjectId,
-      // ref: "Category"
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category"
    },
    img:{
       type:String,
