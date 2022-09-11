@@ -26,7 +26,7 @@ app.use(express.urlencoded({extended:false}))
 app.use('/auth',authRouter)
 app.use(authorization)
 app.use('/category',authorization,categoryRouter)
-app.use('/ad',authorization,adRouter)
+app.use('/ads',authorization,adRouter)
 async function authorization(req,res,next){
     const authHeader = req.headers['authorization']
     if (authHeader === undefined) {

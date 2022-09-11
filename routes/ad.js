@@ -21,6 +21,7 @@ const storage = multer.diskStorage({
 //Get Ads
 const upload = multer({storage:storage})
 router.get('/', async (req, res) => {
+    console.log(req.header)
     const authHeaderInfo = req.header("authorization")
     if(authHeaderInfo===undefined){
         return res.status(401).send("No Token was provided")
@@ -45,6 +46,7 @@ router.get('/', async (req, res) => {
 })
 //Add ad
 router.post('/add',upload.single("image"), async (req, res) => {
+    
     const { title,description ,price,seller,category } = req.body
     if (!title||!description ||!price||!seller||!category) {
         return res.status(400).send("Not all required fields are provided")

@@ -5,6 +5,7 @@ const UserModel = require("../schemes/userScheme")
 const jwt = require("jsonwebtoken")
 router.post('/signUp', async (req, res) => {
     const { name, email, password, confirmPassword } = req.body
+    console.log(req.body)
     if (!name || !email || !password || !confirmPassword) {
         return res.status(400).send("All fields must be there")
     }
@@ -13,7 +14,7 @@ router.post('/signUp', async (req, res) => {
     }
     const userExist = await UserModel.findOne({ email: email })
     if (userExist !== null) {
-        return res.status(400).send("User all exist")
+        return res.status(400).send("User already exist")
     }
     let salt = await bycrypt.genSalt(10)
     let hash = await bycrypt.hash(password, salt)
@@ -30,6 +31,7 @@ let refreshTokens = []
 // refreshTokens must be in database so change this code
 router.post('/login', async (req, res) => {
     const { email, password } = req.body
+    console.log(req.body)
     if (!email || !password) {
         return res.status(400).send("Email or password not recieved")
     }
@@ -38,7 +40,6 @@ router.post('/login', async (req, res) => {
     // let hash = await bycrypt.hash(password, salt)
     const userExist = await UserModel.findOne({ email: email })
     if (userExist === null) {
-        console.log("here1")
         return res.status(400).send("No such user")
     }
     let payload = { email: userExist.email, password: userExist.password }
@@ -51,7 +52,7 @@ router.post('/login', async (req, res) => {
     let refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "3d" })
     console.log("token", accessToken, "refreshToken", refreshToken)
     refreshTokens.push(refreshToken)
-    res.status(200).send({accessToken:accessToken,refreshToken:refreshToken,userExist})
+   return res.status(200).send({accessToken:accessToken,refreshToken:refreshToken,profile:userExist})
 })
 
 router.get('/token', async (req, res) => {
