@@ -34,7 +34,10 @@ router.get('/', async (req, res) => {
         console.log("here")
         let payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
         console.log("payload", payload)
-        const ads = await AdModel.find({})
+        const ads = await AdModel.find({}).populate("seller","name")
+        .populate("interestedBuyers","name")
+        .populate("buyer","name")
+        .populate("category","name")
         if(ads===null){
             return res.status(400).send("No Ads exist ")
         }
@@ -88,9 +91,8 @@ router.post('/add',upload.single("img"), async (req, res) => {
         seller:user,
         category:categoryObj,
         img:imageUrl
-    }).populate({"seller":"name"})
-    .populate({"interestedBuyers":"name"})
-    .populate({"buyer":"name"})
+    })
+  
      
     await UserModel.findOneAndUpdate({_id:seller},{ $push: { ads: newAd } })
     await newAd.save()
