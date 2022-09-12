@@ -45,8 +45,8 @@ router.get('/', async (req, res) => {
         }
 })
 //Add ad
-router.post('/add',upload.single("image"), async (req, res) => {
-    
+router.post('/add',upload.single("img"), async (req, res) => {
+    console.log(req.file)
     const { title,description ,price,seller,category } = req.body
     if (!title||!description ||!price||!seller||!category) {
         return res.status(400).send("Not all required fields are provided")
@@ -91,10 +91,10 @@ router.post('/add',upload.single("image"), async (req, res) => {
     })
      
     await UserModel.findOneAndUpdate({_id:seller},{ $push: { ads: newAd } })
+    await newAd.save()
 
     res.status(200).send(`Ad created with id ${newAd.id}`)
     console.log(newAd)
-    newAd.save()
 })
 //Interested in Ad
 router.post('/:id/buy', async (req, res) => {
