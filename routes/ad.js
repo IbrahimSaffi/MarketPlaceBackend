@@ -88,7 +88,9 @@ router.post('/add',upload.single("img"), async (req, res) => {
         seller:user,
         category:categoryObj,
         img:imageUrl
-    })
+    }).populate({"seller":"name"})
+    .populate({"interestedBuyers":"name"})
+    .populate({"buyer":"name"})
      
     await UserModel.findOneAndUpdate({_id:seller},{ $push: { ads: newAd } })
     await newAd.save()
